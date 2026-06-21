@@ -1,0 +1,6 @@
+{
+  "name": "Wedding Invitation & RSVP",
+  "description": "A beautiful, responsive, and light-themed vertical wedding invitation landing page with an anti-spam RSVP form and guest registry.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
