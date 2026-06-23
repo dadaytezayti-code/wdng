@@ -113,9 +113,36 @@ export default function RSVPForm() {
 
       let result;
       let ok = false;
+      let triedLocal = false;
 
-      // Submit directly if SHEETS_WEBAPP_URL is specified client-side (e.g. on Vercel)
-      if (SHEETS_WEBAPP_URL) {
+      // Try local full-stack Express API route first to completely bypass browser CORS policies!
+      try {
+        const res = await fetch("/api/rsvps", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        });
+
+        if (res.ok) {
+          result = await res.json();
+          ok = true;
+          triedLocal = true;
+        } else if (res.status === 404) {
+          // If 404, we are in a purely static client environment and need to fall back
+          triedLocal = false;
+        } else {
+          triedLocal = true;
+          const errData = await res.json().catch(() => ({}));
+          setErrorMsg(errData.error || "Something went wrong. Please try again.");
+          setLoading(false);
+          return;
+        }
+      } catch (err) {
+        console.warn("Local API endpoint not available, falling back to direct Sheets client-side fetch...", err);
+      }
+
+      // Fallback to direct client-side Google Sheets submit if local Express server is not available
+      if (!ok && !triedLocal && SHEETS_WEBAPP_URL) {
         const res = await fetch(SHEETS_WEBAPP_URL, {
           method: "POST",
           headers: {
@@ -149,21 +176,6 @@ export default function RSVPForm() {
           }
         } else {
           setErrorMsg("Could not store RSVP to Google Sheets Web App. Please check the network.");
-        }
-      } else {
-        // Fallback to local server API integration
-        const res = await fetch("/api/rsvps", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payload),
-        });
-
-        if (res.ok) {
-          result = await res.json();
-          ok = true;
-        } else {
-          const errData = await res.json().catch(() => ({}));
-          setErrorMsg(errData.error || "Something went wrong. Please try again.");
         }
       }
 
