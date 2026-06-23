@@ -1,6 +1,6 @@
 {
   "name": "Wedding Invitation & RSVP",
-  "description": "A beautiful, responsive, and light-themed vertical wedding invitation landing page with an anti-spam RSVP form and guest registry.",
+  "description": "A beautiful, responsive, and light-themed vertical wedding invitation landing page with an real-time Google Sheets integrated RSVP submission form.",
   "requestFramePermissions": [],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }

@@ -5,7 +5,7 @@ export interface RSVP {
   side?: "bride" | "spouse";
   musicSuggestions?: string;
   plusOneCount: number;
-  plusOneNames?: string;
+  arrivalLocations?: string[];
   updatedAt?: string;
 }
 

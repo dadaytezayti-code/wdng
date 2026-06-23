@@ -1,6 +1,5 @@
 import express from "express";
 import path from "path";
-import fs from "fs";
 import { fileURLToPath } from "url";
 import { createServer as createViteServer } from "vite";
 
@@ -9,226 +8,245 @@ const __dirname = path.dirname(__filename);
 
 const app = express();
 const PORT = 3000;
-const DB_FILE = path.join(process.cwd(), "rsvps.json");
-
-// Ensure the RSVP database JSON file exists
-if (!fs.existsSync(DB_FILE)) {
-  fs.writeFileSync(DB_FILE, JSON.stringify([], null, 2), "utf-8");
-}
 
 app.use(express.json());
 
-// Helper to read RSVPs
-function getRSVPs() {
-  try {
-    const data = fs.readFileSync(DB_FILE, "utf-8");
-    return JSON.parse(data);
-  } catch (err) {
-    console.error("Error reading rsvps.json, resetting database:", err);
-    return [];
+// Memory store for RSVPs when Google Sheets Web App is not yet configured (Demo Mode)
+let demoRsvps: any[] = [
+  {
+    id: "demo_1",
+    name: "Jean Dupont",
+    attendance: "yes",
+    side: "bride",
+    musicSuggestions: "Daft Punk - One More Time",
+    plusOneCount: 1,
+    updatedAt: new Date(Date.now() - 3600000 * 24 * 3).toISOString()
+  },
+  {
+    id: "demo_2",
+    name: "Alice Martin",
+    attendance: "tentative",
+    side: "spouse",
+    musicSuggestions: "ABBA - Dancing Queen",
+    plusOneCount: 0,
+    updatedAt: new Date(Date.now() - 3600000 * 12).toISOString()
   }
-}
-
-// Helper to save RSVPs
-function saveRSVPs(rsvps: any[]) {
-  try {
-    fs.writeFileSync(DB_FILE, JSON.stringify(rsvps, null, 2), "utf-8");
-  } catch (err) {
-    console.error("Error writing to rsvps.json:", err);
-  }
-}
+];
 
 // Check connection
 app.get("/api/health", (req, res) => {
   res.json({ status: "ok", time: new Date().toISOString() });
 });
 
+// Sheet configuration checker
+app.get("/api/sheets-config", (req, res) => {
+  res.json({
+    configured: !!process.env.GOOGLE_SHEETS_WEBAPP_URL,
+    url: process.env.GOOGLE_SHEETS_WEBAPP_URL ? "configured" : null
+  });
+});
+
 // Admin Authentication check (Simple PIN from header)
 const ADMIN_PIN = "love2026"; // Simple wedding organizer PIN
 
-// Get all RSVPs for wedding guestbook (completely public, no PIN required)
-app.get("/api/rsvps", (req, res) => {
-  const rsvps = getRSVPs();
-  res.json(rsvps);
+// Get all RSVPs for wedding guestbook
+app.get("/api/rsvps", async (req, res) => {
+  const webappUrl = process.env.GOOGLE_SHEETS_WEBAPP_URL;
+  if (webappUrl) {
+    try {
+      const response = await fetch(webappUrl);
+      if (!response.ok) {
+        throw new Error(`Google Sheets proxy returned status ${response.status}`);
+      }
+      const data = await response.json();
+      return res.json(data);
+    } catch (err: any) {
+      console.error("Error fetching rows from Google Sheets Web App:", err);
+      return res.status(502).json({ error: "Failed to fetch RSVP entries from Google Sheets: " + err.message });
+    }
+  } else {
+    // Return sample/demo memory listings
+    return res.json(demoRsvps);
+  }
 });
 
 // Get single RSVP by user record ID
-app.get("/api/rsvps/:id", (req, res) => {
+app.get("/api/rsvps/:id", async (req, res) => {
   const { id } = req.params;
-  const rsvps = getRSVPs();
-  const found = rsvps.find((r: any) => r.id === id);
-  if (!found) {
+  const webappUrl = process.env.GOOGLE_SHEETS_WEBAPP_URL;
+  
+  if (webappUrl) {
+    try {
+      const response = await fetch(webappUrl);
+      if (response.ok) {
+        const rsvps: any[] = await response.json();
+        const found = rsvps.find((r: any) => r.id === id);
+        if (found) {
+          return res.json(found);
+        }
+      }
+    } catch (err) {
+      console.error("Error fetching single RSVP:", err);
+    }
     return res.status(404).json({ error: "RSVP record not found" });
+  } else {
+    const found = demoRsvps.find((r: any) => r.id === id);
+    if (!found) {
+      return res.status(404).json({ error: "RSVP record not found" });
+    }
+    return res.json(found);
   }
-  res.json(found);
 });
 
-// Secure RSVP recovery by primary guest name (if switching devices)
-app.post("/api/rsvps/recover", (req, res) => {
+// Secure RSVP recovery by primary guest name
+app.post("/api/rsvps/recover", async (req, res) => {
   const { name } = req.body;
   if (!name || typeof name !== "string" || name.trim() === "") {
     return res.status(400).json({ error: "Name is required for lookup retrieval" });
   }
 
-  const rsvps = getRSVPs();
   const searchName = name.trim().toLowerCase();
-  
-  const found = rsvps.find((r: any) => r.name.trim().toLowerCase() === searchName);
-  if (!found) {
-    return res.status(404).json({ error: "No RSVP registry card found matching this name." });
-  }
+  const webappUrl = process.env.GOOGLE_SHEETS_WEBAPP_URL;
 
-  res.json(found);
+  if (webappUrl) {
+    try {
+      const response = await fetch(webappUrl);
+      if (response.ok) {
+        const rsvps: any[] = await response.json();
+        const found = rsvps.find((r: any) => r.name.trim().toLowerCase() === searchName);
+        if (found) {
+          return res.json(found);
+        }
+      }
+    } catch (err) {
+      console.error("Error during recovery:", err);
+    }
+    return res.status(404).json({ error: "No RSVP registry card found matching this name in Google Sheets." });
+  } else {
+    const found = demoRsvps.find((r: any) => r.name.trim().toLowerCase() === searchName);
+    if (!found) {
+      return res.status(404).json({ error: "No RSVP registry card found matching this name." });
+    }
+    return res.json(found);
+  }
 });
 
-// Mock formatted email notification helper for wedding couple
-function sendMockRSVPEmailNotification(rsvp: any) {
+// Mock formatted email notification helper for wedding couple (to log in console for confirmation)
+function sendMockRSVPEmailNotification(rsvp: any, isGoogleSheets: boolean) {
   const weddingEmail = "emma.arthur.wedding2026@gmail.com";
-  
   const attendanceLabel = rsvp.attendance === "yes" 
     ? "🎉 Joyfully Accepts" 
     : rsvp.attendance === "tentative" 
     ? "⏳ Tentative Response" 
     : "✉️ Regretfully Declines";
 
-  const emailSubject = `🔔 Wedding RSVP Update: ${rsvp.name} (${rsvp.attendance.toUpperCase()})`;
-  
-  const emailHtml = `
-    <div style="font-family: 'Georgia', serif; max-width: 600px; margin: 0 auto; padding: 40px 30px; border: 1px solid #ece4db; border-radius: 16px; background-color: #fdfbf7; color: #2c2523;">
-       <div style="text-align: center; margin-bottom: 30px;">
-        <span style="font-size: 11px; text-transform: uppercase; letter-spacing: 0.2em; color: #bf9c85; font-weight: 600;">Wedding Bells Registry Notifier</span>
-        <h1 style="font-size: 28px; margin: 10px 0; color: #3d3129; font-weight: normal; border-bottom: 2px solid #eddccb; padding-bottom: 15px;">Emma &amp; Arthur Wedding</h1>
-      </div>
-      
-      <p style="font-size: 16px; line-height: 1.6; color: #5c4e43;">
-        Hello Emma &amp; Arthur,
-      </p>
-      
-      <p style="font-size: 16px; line-height: 1.6; color: #5c4e43;">
-        A guest has just registered their RSVP response for your special day! Here are the details:
-      </p>
-      
-      <div style="background-color: #fffefe; border: 1px solid #ece4db; border-radius: 12px; padding: 25px; margin: 25px 0;">
-        <table style="width: 100%; border-collapse: collapse;">
-          <tr style="border-bottom: 1px solid #f5f0e6;">
-            <td style="padding: 10px 0; font-weight: bold; color: #8a7261; width: 35%;">Guest Name</td>
-            <td style="padding: 10px 0; color: #3d3129; font-weight: 600; font-size: 16px;">${rsvp.name}</td>
-          </tr>
-          <tr style="border-bottom: 1px solid #f5f0e6;">
-            <td style="padding: 10px 0; font-weight: bold; color: #8a7261;">Attending Side</td>
-            <td style="padding: 10px 0; color: #3d3129; font-weight: 600; text-transform: capitalize;">${rsvp.side || "Unspecified"}</td>
-          </tr>
-          <tr style="border-bottom: 1px solid #f5f0e6;">
-            <td style="padding: 10px 0; font-weight: bold; color: #8a7261;">Attendance Status</td>
-            <td style="padding: 10px 0; color: #3d3129; font-weight: bold;">
-              <span style="padding: 4px 12px; border-radius: 12px; font-size: 13px; background-color: ${rsvp.attendance === 'yes' ? '#e6f4ea' : rsvp.attendance === 'tentative' ? '#fff4e5' : '#fce8e6'}; color: ${rsvp.attendance === 'yes' ? '#137333' : rsvp.attendance === 'tentative' ? '#b06000' : '#c5221f'};">
-                ${attendanceLabel}
-              </span>
-            </td>
-          </tr>
-          <tr style="border-bottom: 1px solid #f5f0e6;">
-            <td style="padding: 10px 0; font-weight: bold; color: #8a7261;">Plus One Registry</td>
-            <td style="padding: 10px 0; color: #3d3129;">
-              ${rsvp.plusOneCount > 0 ? `<strong>+${rsvp.plusOneCount} Guest(s)</strong> (${rsvp.plusOneNames})` : "None"}
-            </td>
-          </tr>
-          <tr>
-            <td style="padding: 10px 0; font-weight: bold; color: #8a7261; vertical-align: top;">Song Requests / Music Suggestions</td>
-            <td style="padding: 10px 0; color: #5c4e43; font-style: italic; line-height: 1.5;">
-              "${rsvp.musicSuggestions && rsvp.musicSuggestions.trim() ? rsvp.musicSuggestions : "No music suggestions provided."}"
-            </td>
-          </tr>
-        </table>
-      </div>
-      
-      <p style="font-size: 12px; text-align: center; color: #8a7261; margin-top: 40px; border-top: 1px solid #ece4db; padding-top: 20px;">
-        This is a simulated notification from your live Guestbook Dashboard directory at Emma &amp; Arthur Wedding Organizers 2026.
-      </p>
-    </div>
-  `;
+  const emailSubject = `🔔 Wedding RSVP Update via ${isGoogleSheets ? "Google Sheets" : "Demo"}: ${rsvp.name}`;
 
   console.log("\n=======================================================");
-  console.log("📨 SIMULATED EMAIL NOTIFICATION TRIGGERED SUCCESSFULLY");
+  console.log("📨 SIMULATED REAL-TIME NOTIFICATION DISPATCHED");
   console.log(`To:      ${weddingEmail}`);
   console.log(`Subject: ${emailSubject}`);
-  console.log("----------------------- CONTENT -----------------------");
-  console.log(`[Summary]: ${rsvp.name} (${rsvp.side}) response is "${rsvp.attendance}". Plus-ones: ${rsvp.plusOneCount}. Songs: "${rsvp.musicSuggestions || "(blank)"}"`);
-  console.log("-------------------------------------------------------");
-  console.log("HTML email body simulated and validated flawlessly.");
+  console.log(`Payload: ${rsvp.name} (${rsvp.side}) responded: ${rsvp.attendance}, Plus-ones: ${rsvp.plusOneCount}`);
   console.log("=======================================================\n");
 
   return {
     to: weddingEmail,
     subject: emailSubject,
-    bodySummary: `Dear Emma & Arthur, ${rsvp.name} (${rsvp.side}) responded as ${rsvp.attendance}.`,
+    bodySummary: `Dear Emma & Arthur, ${rsvp.name} (${rsvp.side}) responded as ${rsvp.attendance}. Recipient is Google Sheets.`,
     simulatedAt: new Date().toISOString(),
   };
 }
 
 // Create or update RSVP record
-app.post("/api/rsvps", (req, res) => {
-  const { id, name, attendance, side, musicSuggestions, plusOneCount, plusOneNames } = req.body;
+app.post("/api/rsvps", async (req, res) => {
+  const { id, name, attendance, side, musicSuggestions, plusOneCount, arrivalLocations } = req.body;
 
   if (!name || typeof name !== "string" || name.trim() === "") {
     return res.status(400).json({ error: "Name is required" });
   }
 
-  const rsvps = getRSVPs();
-
-  // Simple anti-spam validator mapping: block duplicate names IF they're submitting a brand-new RSVP
-  // (unless they are editing their existing RSVP using matching ID)
-  const normalizedNewName = name.trim().toLowerCase();
-  const existingByName = rsvps.find(
-    (r: any) => r.name.trim().toLowerCase() === normalizedNewName && r.id !== id
-  );
-
-  if (existingByName && !id) {
-    return res.status(400).json({
-      error: "An RSVP with this name already exists. If this is you, please edit your existing response rather than creating a new one.",
-      duplicate: true,
-    });
-  }
-
   const recordId = id || "rsvp_" + Math.random().toString(36).substring(2, 11);
-  const matchedIndex = rsvps.findIndex((r: any) => r.id === recordId);
-
   const updatedRecord = {
     id: recordId,
     name: name.trim(),
-    attendance: attendance || "yes", // yes, no, tentative
-    side: side || "bride", // bride, spouse
+    attendance: attendance || "yes",
+    side: side || "bride",
     musicSuggestions: musicSuggestions ? musicSuggestions.substring(0, 1000) : "",
     plusOneCount: Number(plusOneCount) || 0,
-    plusOneNames: plusOneNames ? plusOneNames.substring(0, 500) : "",
+    arrivalLocations: Array.isArray(arrivalLocations) ? arrivalLocations : [],
     updatedAt: new Date().toISOString(),
   };
 
-  if (matchedIndex > -1) {
-    rsvps[matchedIndex] = updatedRecord;
+  const webappUrl = process.env.GOOGLE_SHEETS_WEBAPP_URL;
+
+  // Let's generate simulation logging
+  const emailNotificationMock = sendMockRSVPEmailNotification(updatedRecord, !!webappUrl);
+
+  if (webappUrl) {
+    try {
+      const response = await fetch(webappUrl, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(updatedRecord)
+      });
+      
+      const resText = await response.text();
+      let resJson: any = {};
+      try {
+        resJson = JSON.parse(resText);
+      } catch (e) {
+        resJson = { status: "success", info: resText };
+      }
+
+      if (resJson.status === "error") {
+        return res.status(500).json({ error: "Google Sheets script error: " + resJson.error });
+      }
+
+      return res.json({
+        success: true,
+        method: "google_sheets",
+        record: updatedRecord,
+        emailNotificationMock
+      });
+    } catch (err: any) {
+      console.error("Error forwarding post to Google Sheets Web App:", err);
+      return res.status(502).json({ error: "Failed to store RSVP to Google Sheets. Check script URL or network." });
+    }
   } else {
-    rsvps.push(updatedRecord);
+    // Demo InMemory updates
+    const matchedIndex = demoRsvps.findIndex((r: any) => r.id === recordId || r.name.toLowerCase() === name.trim().toLowerCase());
+    if (matchedIndex > -1) {
+      demoRsvps[matchedIndex] = { ...demoRsvps[matchedIndex], ...updatedRecord };
+    } else {
+      demoRsvps.push(updatedRecord);
+    }
+
+    return res.json({
+      success: true,
+      method: "demo",
+      record: updatedRecord,
+      emailNotificationMock,
+      demoNotice: true
+    });
   }
-
-  saveRSVPs(rsvps);
-
-  // Trigger high-end formatted simulated email notification to wedding coordinators
-  const emailNotificationMock = sendMockRSVPEmailNotification(updatedRecord);
-
-  res.json({ success: true, record: updatedRecord, emailNotificationMock });
 });
 
-// Delete an RSVP (Admin action)
-app.delete("/api/rsvps/:id", (req, res) => {
+// Delete an RSVP (Admin Action - handled on client or in memory/sheets)
+app.delete("/api/rsvps/:id", async (req, res) => {
   const pin = req.headers["authorization"] || req.query.pin;
   if (pin !== ADMIN_PIN) {
     return res.status(401).json({ error: "Unauthorized access: Invalid PIN" });
   }
 
   const { id } = req.params;
-  const rsvps = getRSVPs();
-  const filtered = rsvps.filter((r: any) => r.id !== id);
-  saveRSVPs(filtered);
-  res.json({ success: true });
+  const webappUrl = process.env.GOOGLE_SHEETS_WEBAPP_URL;
+
+  if (webappUrl) {
+    return res.status(501).json({ error: "Admin delete actions must be done directly from your connected Google Spreadsheet!" });
+  } else {
+    demoRsvps = demoRsvps.filter((r: any) => r.id !== id);
+    return res.json({ success: true, method: "demo" });
+  }
 });
 
 // Vite middleware integrations or static distribution

@@ -1,35 +1,30 @@
 import { motion } from "motion/react";
 import { Building2, Church, Utensils, MapPin, Clock, ExternalLink } from "lucide-react";
 import brideHouseImg from "../assets/images/bride_house_1781429832477.jpg";
-import churchImg from "../assets/images/wedding_church_1781429848718.jpg";
-import restaurantImg from "../assets/images/wedding_restaurant_1781429864364.jpg";
+import churchImg from "../assets/images/nork_church_v2_1782248501443.jpg";
+import restaurantImg from "../assets/images/voske_tsiran_banquet_v2_1782155413948.jpg";
 
 interface DetailCardProps {
-  id: string;
   type: "house" | "church" | "restaurant";
   title: string;
-  subtitle: string;
   time: string;
   address: string;
   mapLink: string;
   image: string;
-  caption: string;
-  description: string;
   index: number;
+  imagePosition?: string;
   key?: string | number;
 }
 
 function DetailCard({
   type,
   title,
-  subtitle,
   time,
   address,
   mapLink,
   image,
-  caption,
-  description,
   index,
+  imagePosition = "object-center",
 }: DetailCardProps) {
   const IconMap = {
     house: Building2,
@@ -42,78 +37,70 @@ function DetailCard({
 
   return (
     <motion.div
-      initial={{ opacity: 0, x: isEven ? -60 : 60, y: 30 }}
-      whileInView={{ opacity: 1, x: 0, y: 0 }}
-      viewport={{ once: false, margin: "-100px" }}
-      whileHover={{ y: -8, scale: 1.015, transition: { duration: 0.3 } }}
-      transition={{ type: "spring", stiffness: 45, damping: 14, mass: 1.1 }}
-      className="w-full max-w-3xl mx-auto bg-white rounded-3xl border border-[#ece4db] shadow-md overflow-hidden flex flex-col mb-16 select-none"
+      initial={{ opacity: 0, y: 30 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true, margin: "-100px" }}
+      whileHover={{ y: -6, transition: { duration: 0.3 } }}
+      transition={{ type: "spring", stiffness: 50, damping: 15 }}
+      className="w-full max-w-2xl mx-auto bg-white rounded-3xl border border-[#ece4db]/70 shadow-xs overflow-hidden flex flex-col hover:shadow-md transition-all duration-300"
     >
       {/* Large beautiful Image Block on top */}
-      <div className="w-full relative h-[320px] md:h-[450px] overflow-hidden">
+      <div className="w-full relative h-[240px] sm:h-[400px] overflow-hidden">
         <img
           src={image}
-          alt={caption}
-          className="w-full h-full object-cover transition-transform duration-500 hover:scale-102"
+          alt={title}
+          className={`w-full h-full object-cover ${imagePosition} transition-transform duration-700 hover:scale-102`}
           referrerPolicy="no-referrer"
         />
-        <div className="absolute inset-0 bg-gradient-to-t from-[#2c2523]/70 via-[#2c2523]/10 to-transparent pointer-events-none" />
-        <div className="absolute bottom-6 left-6 right-6 text-white text-xs tracking-wider italic font-display bg-[#3d3129]/75 backdrop-blur-md px-4 py-2 rounded-xl border border-white/10 w-fit">
-          {caption}
-        </div>
+        <div className="absolute inset-0 bg-gradient-to-t from-[#4a3b32]/15 to-transparent pointer-events-none" />
       </div>
 
       {/* Information stacked directly underneath */}
-      <div className="w-full p-8 md:p-12 flex flex-col justify-between bg-[#fffefe]">
-        <div>
-          {/* Section Marker */}
-          <div className="flex items-center gap-2 text-xxs uppercase tracking-[0.2em] text-[#bf9c85] font-semibold mb-4">
-            <Icon className="w-4 h-4 text-[#bf9c85]" />
-            <span>{subtitle}</span>
+      <div className="w-full p-6 sm:p-8 flex flex-col justify-between bg-white text-[#4a3b32]">
+        <div className="flex flex-col gap-4">
+          {/* Header/Name - Not Bold, styled elegantly with an icon background */}
+          <div className="flex items-center gap-3.5">
+            <div className="p-2.5 bg-[#faf6f0] rounded-xl text-[#bf9c85] shrink-0">
+              <Icon className="w-5 h-5" />
+            </div>
+            <div className="flex flex-col">
+              <h3 className="font-sans text-sm sm:text-base md:text-lg font-normal text-[#4a3b32] leading-tight">
+                {title}
+              </h3>
+            </div>
           </div>
 
-          <h3 className="font-display text-3xl md:text-4xl font-bold text-[#3d3129] leading-tight mb-5">
-            {title}
-          </h3>
-
-          <p className="font-sans text-sm md:text-base text-[#5c4e43]/90 leading-relaxed mb-8">
-            {description}
-          </p>
-
-          {/* Logistics Details */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 border-t border-[#f3e9dc] pt-8">
-            <div className="flex items-start gap-3.5 text-sm text-[#3d3129]">
-              <div className="p-2.5 bg-[#faf6f0] rounded-xl text-[#bf9c85]">
-                <Clock className="w-4.5 h-4.5 shrink-0" />
-              </div>
-              <div>
-                <span className="font-semibold block text-[#8a7261] text-xxs uppercase tracking-wider mb-0.5">Time Schedule</span>
-                <span className="font-sans text-sm font-medium">{time}</span>
-              </div>
+          {/* Time - cleanly stacked with identical layout and backgrounds */}
+          <div className="flex items-center gap-3.5">
+            <div className="p-2.5 bg-[#faf6f0] rounded-xl text-[#bf9c85] shrink-0">
+              <Clock className="w-5 h-5" />
             </div>
+            <div className="flex flex-col">
+              <span className="font-sans text-sm sm:text-base md:text-lg font-normal text-[#4a3b32] leading-tight">{time}</span>
+            </div>
+          </div>
 
-            <div className="flex items-start gap-3.5 text-sm text-[#3d3129]">
-              <div className="p-2.5 bg-[#faf6f0] rounded-xl text-[#bf9c85]">
-                <MapPin className="w-4.5 h-4.5 shrink-0" />
-              </div>
-              <div>
-                <span className="font-semibold block text-[#8a7261] text-xxs uppercase tracking-wider mb-0.5">Location Address</span>
-                <span className="font-sans text-sm font-medium leading-relaxed">{address}</span>
-              </div>
+          {/* Location - cleanly stacked with identical layout and backgrounds */}
+          <div className="flex items-center gap-3.5">
+            <div className="p-2.5 bg-[#faf6f0] rounded-xl text-[#bf9c85] shrink-0">
+              <MapPin className="w-5 h-5" />
+            </div>
+            <div className="flex flex-col">
+              <span className="font-sans text-sm sm:text-base md:text-lg font-normal text-[#4a3b32] leading-tight">{address}</span>
             </div>
           </div>
         </div>
 
         {/* Action Button */}
-        <div className="mt-8 pt-6 border-t border-neutral-100/80 flex justify-end">
+        <div className="mt-5 pt-4 border-t border-[#fdfbf7] flex justify-end">
           <a
             href={mapLink}
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex items-center gap-2 text-xs font-bold tracking-widest uppercase bg-[#bf9c85] hover:bg-[#8d705c] text-white py-3 px-6 rounded-full transition-all duration-300 shadow-sm hover:shadow-md"
+            className="inline-flex items-center gap-1.5 text-xxs font-extrabold tracking-widest uppercase bg-[#bf9c85] hover:bg-[#8d705c] text-white py-2.5 px-5 rounded-full transition-all duration-300 shadow-xs hover:shadow-md cursor-pointer"
           >
-            <span>Open in Google Maps</span>
-            <ExternalLink className="w-3.5 h-3.5" />
+            <span>Բացել Քարտեզը</span>
+            <ExternalLink className="w-3 h-3" />
           </a>
         </div>
       </div>
@@ -126,91 +113,68 @@ export default function DetailsBlock() {
     {
       id: "house",
       type: "house" as const,
-      title: "Bride's Preparation House",
-      subtitle: "The Morning Preparations",
-      time: "11:00 AM — Family traditional greeting & light bites",
-      address: "Villa di Maiano, Via del Salviatino, 1, 50137 Fiesole FI, Italy",
-      mapLink: "https://maps.google.com/?q=Villa+di+Maiano+Fiesole+Italy",
+      title: "Հարսի Տուն",
+      time: "11:00",
+      address: "Արաբկիր, ք․ Երևան",
+      mapLink: "https://maps.google.com/?q=Yerevan+Arabkir",
       image: brideHouseImg,
-      caption: "Bridal Suite & Gardens",
-      description: "Our wedding morning begins at the elegant Villa di Maiano. Complete with cherry orchards and sweeping valleys, this is where the bride will prepare along with close relatives, welcoming the groom and early arrivals with traditional Tuscan lemonade and local pastries.",
     },
     {
       id: "church",
       type: "church" as const,
-      title: "The Holy Matrimony",
-      subtitle: "The Sacred Vows",
-      time: "02:30 PM — Ceremony starts promptly",
-      address: "Basilica di San Miniato al Monte, Via delle Porte Sante, 34, 50125 Firenze FI, Italy",
-      mapLink: "https://maps.google.com/?q=Basilica+di+San+Miniato+al+Monte+Florence+Italy",
+      title: "Պսակադրություն",
+      time: "14:30",
+      address: "Սուրբ Աստվածածին եկեղեցի, Արմենակ Արմենակյան 225",
+      mapLink: "https://www.google.com/maps/place/%D0%A6%D0%B5%D1%80%D0%BA%D0%BE%D0%B2%D1%8C+%D0%A1%D0%B2%D1%8F%D1%82%D0%BE%D0%B9+%D0%91%D0%BE%D0%B3%D0%BE%D0%BC%D0%B0%D1%82%D0%B5%D1%80%D0%B8+(%D0%90%D1%81%D1%82%D0%B2%D0%B0%D1%86%D0%B0%D1%86%D0%B8%D0%BD)/@40.2488979,44.498597,12z/data=!4m10!1m2!2m1!1sHoly+Mother+of+God+Church+Nork+Marash+Yerevan!3m6!1s0x406abdc910d0cde3:0x607b5f901e5912da!8m2!3d40.1868101!4d44.5409983!15sCi1Ib2x5IE1vdGhlciBvZiBHb2QgQ2h1cmNoIE5vcmsgTWFyYXNoIFllcmV2YW6SAQ9hcm1lbmlhbl9jaHVyY2jgAQA!16s%2Fg%2F11clt0sdmh?entry=ttu&g_ep=EgoyMDI2MDYyMS4wIKXMDSoASAFQAw%3D%3D",
       image: churchImg,
-      caption: "San Miniato Chapel overlooking Florence",
-      description: "We will exchange our sacred wedding vows inside the timeless 11th-century Basilica di San Miniato al Monte. Let the serene beauty, classical choral pieces, and golden mosaics bear witness to our lifetime covenant. Guest seating begins at 2:00 PM.",
+      imagePosition: "object-[center_15%]",
     },
     {
       id: "restaurant",
       type: "restaurant" as const,
-      title: "The Celebration Banquet",
-      subtitle: "Cocktails, Dining & Dancing",
-      time: "05:30 PM — Cocktails, dinner served at 07:00 PM",
-      address: "Villa Cora Hotel & estate, Viale Machiavelli, 18, 50125 Firenze FI, Italy",
-      mapLink: "https://maps.google.com/?q=Villa+Cora+Florence+Italy",
+      title: "Հարսանեկան Խնջույք",
+      time: "17:30 — դիմավորում, 18:00 — սկիզբ",
+      address: "«Ոսկե Ծիրան Պրեմիում Հոլլ», ք. Արտաշատ, Աբովյան 91",
+      mapLink: "https://www.google.com/maps/place/%D5%88%D5%BD%D5%AF%D5%A5+%D4%BE%D5%AB%D6%80%D5%A1%D5%B6+%D5%8A%D6%80%D5%A5%D5%B4%D5%AB%D5%B8%D6%82%D5%B4+%D5%80%D5%B8%D5%AC%D5%AC,+Voske+Tsiran+Premium+Hall/@40.2484595,44.2513537,10z/data=!4m10!1m2!2m1!1sVoske+Tsiran+Restaurant+Armenia!3m6!1s0x406acb50fb6f21d9:0xc39bc444499a18f1!8m2!3d39.9729824!4d44.5409704!15sCh9Wb3NrZSBUc2lyYW4gUmVzdGF1cmFudCBBcm1lbmlhWiEiH3Zvc2tlIHRzaXJhbiByZXN0YXVyYW50IGFybWVuaWGSAQpyZXN0YXVyYW50mgFEQ2k5RFFVbFJRVU52WkVOb2RIbGpSamx2VDI1U2VHSkRNVWRTUlRneVRqSmFhVkpyVmtWVU0xcG9WR3hHV2swell4QULgAQD6AQQIYRAd!16s%2Fg%2F11x8t403w5?entry=ttu&g_ep=EgoyMDI2MDYyMS4wIKXMDSoASAFQAw%3D%3D",
       image: restaurantImg,
-      caption: "Fairy-lit wedding garden reception table",
-      description: "A short shuttle ride will transport guests to the majestic Villa Cora, where we will salute the sunset with aperitivos before dining inside the beautiful, fairy-lit gardens. Prepare for fine wine, artisan food, and endless dancing!",
     },
   ];
 
   return (
-    <section id="details-section" className="py-20 px-4 max-w-5xl mx-auto">
-      {/* Title block */}
-      <div className="text-center mb-16">
-        <motion.span
-          initial={{ opacity: 0, y: 10 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: false, amount: 0.1 }}
-          transition={{ duration: 0.6 }}
-          className="text-xxs uppercase tracking-[0.25em] text-[#bf9c85] font-semibold"
-        >
-          Special Day Details
-        </motion.span>
-        <motion.h2
-          initial={{ opacity: 0, y: 15 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: false, amount: 0.1 }}
-          transition={{ duration: 0.7, delay: 0.1 }}
-          className="font-display text-3xl md:text-5xl font-bold text-[#3d3129] mt-3"
-        >
-          Where &amp; When
-        </motion.h2>
-        <motion.div
-          initial={{ scaleX: 0 }}
-          whileInView={{ scaleX: 1 }}
-          viewport={{ once: false, amount: 0.1 }}
-          transition={{ duration: 0.6, delay: 0.2 }}
-          className="w-16 h-0.5 bg-[#eddccb] mx-auto mt-6"
-        />
-      </div>
+    <section id="details-section" className="py-16 px-4 bg-gradient-to-b from-[#fcfaf7] to-[#fdfbf7]">
+      <div className="max-w-4xl mx-auto">
+        {/* Title block */}
+        <div className="text-center mb-12">
+          <motion.p
+            initial={{ opacity: 0, y: 15 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.8, delay: 0.2 }}
+            className="text-[#8a7261] mt-3 max-w-md mx-auto leading-relaxed font-sans"
+          >
+            Սիրով ներկայացնում ենք մեր տոնակատարության վայրերը, որպեսզի հեշտությամբ գտնեք ձեր ճանապարհը։
+          </motion.p>
+          <div className="w-16 h-0.5 bg-[#eddccb] mx-auto mt-6" />
+        </div>
 
-      {/* Main vertical sequence of events */}
-      <div className="flex flex-col gap-2">
-        {blocks.map((block, idx) => (
-          <DetailCard
-            key={block.id}
-            id={block.id}
-            type={block.type}
-            title={block.title}
-            subtitle={block.subtitle}
-            time={block.time}
-            address={block.address}
-            mapLink={block.mapLink}
-            image={block.image}
-            caption={block.caption}
-            description={block.description}
-            index={idx}
-          />
-        ))}
+        {/* Main vertical sequence of events */}
+        <div className="space-y-12">
+          {blocks.map((block, idx) => (
+            <DetailCard
+              key={block.id}
+              type={block.type}
+              title={block.title}
+              time={block.time}
+              address={block.address}
+              mapLink={block.mapLink}
+              image={block.image}
+              imagePosition={block.imagePosition}
+              index={idx}
+            />
+          ))}
+        </div>
       </div>
     </section>
   );
 }
+
