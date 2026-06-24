@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
-import { Heart, ChevronDown, Sparkles } from "lucide-react";
+import { Heart } from "lucide-react";
 import heroImage from "../assets/images/IMG_8981.jpg";
 
 interface HeroProps {
